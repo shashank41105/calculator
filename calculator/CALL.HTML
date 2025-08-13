@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Single Display Calculator</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: linear-gradient(135deg, #585858, #545353);
+            color: white;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+        }
+
+        .calculator {
+            width: 100%;
+            max-width: 320px;
+            background: linear-gradient(to bottom, #2d2d2d, #1f1f1f);
+            border-radius: 20px;
+            padding: 20px;
+            box-shadow: 0px 8px 15px rgba(0, 0, 0, 0.4), inset 0 2px 2px rgba(255, 255, 255, 0.1);
+        }
+
+        .display {
+            background: #000;
+            color: #0f0;
+            font-family: 'Courier New', Courier, monospace;
+            padding: 15px;
+            border-radius: 10px;
+            box-shadow: inset 0 2px 5px rgba(0, 0, 0, 0.6);
+            text-align: right;
+            margin-bottom: 15px;
+            height: 80px;
+            overflow-x: auto;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-end;
+        }
+        .operation {
+            font-size: 18px;
+            color: #7f7;
+            min-height: 24px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        #historyList {
+            display: none;
+            position: absolute;
+            right: 20px;
+            top: 120px;
+            background: rgba(0, 0, 0, 0.9);
+            border-radius: 8px;
+            padding: 10px;
+            width: 320px;
+            max-height: 300px;
+            overflow-y: auto;
+            font-size: 14px;
+            z-index: 100;
+            border: 1px solid #444;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.5);
+        }
+        .history-item {
+            padding: 8px;
+            border-bottom: 1px solid #333;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        #historyList.empty {
+            display: none;
+        }
+        .popup-message {
+            padding: 10px;
+            text-align: center;
+            color: #7f7;
+        }
+        .history-item:hover {
+            background: rgba(255,255,255,0.1);
+        }
+        .result {
+            font-size: 28px;
+            word-break: break-all;
+        }
+
+        .buttons {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 10px;
+        }
+
+        button {
+            height: 60px;
+            background: linear-gradient(to bottom, #444, #222);
+            color: white;
+            font-size: 18px;
+            font-weight: bold;
+            border: 1px solid #000;
+            border-radius: 8px;
+            box-shadow: 0 3px #111;
+            cursor: pointer;
+            transition: all 0.2s ease-in-out;
+        }
+
+        button:hover {
+            background: linear-gradient(to bottom, #555, #333);
+        }
+
+        button:active {
+            box-shadow: inset 0 3px 3px #000;
+            transform: translateY(2px);
+        }
+
+        .equals {
+            background: linear-gradient(to bottom, #27ae60, #1e8449);
+            color: white;
+        }
+
+        .equals:hover {
+            background: linear-gradient(to bottom, #2ecc71, #27ae60);
+        }
+
+        .clear {
+            background: linear-gradient(to bottom, #e74c3c, #c0392b);
+        }
+
+        .clear:hover {
+            background: linear-gradient(to bottom, #e74c3c, #a93226);
+        }
+
+        .delete {
+            background: linear-gradient(to bottom, #f1c40f, #d4ac0d);
+            color: black;
+        }
+
+        .delete:hover {
+            background: linear-gradient(to bottom, #f4d03f, #d4ac0d);
+        }
+    </style>
+</head>
+<body>
+    <div class="calculator" role="calculator" aria-label="Calculator">
+        <div class="display" aria-live="polite">
+            <div id="operation" class="operation"></div>
+            <div id="result" class="result">0</div>
+        </div>
+        <div class="buttons">
+            <button class="clear" onclick="clearDisplay()" aria-label="Clear">AC</button>
+            <button class="delete" onclick="deleteLast()" aria-label="Delete last character">DEL</button>
+            <button onclick="appendToDisplay('%')" aria-label="Percentage">%</button>
+            <button onclick="appendToDisplay('/')" aria-label="Division">÷</button>
+            <button onclick="appendToDisplay('7')" aria-label="Number 7">7</button>
+            <button onclick="appendToDisplay('8')" aria-label="Number 8">8</button>
+            <button onclick="appendToDisplay('9')" aria-label="Number 9">9</button>
+            <button onclick="appendToDisplay('*')" aria-label="Multiplication">×</button>
+            <button onclick="appendToDisplay('4')" aria-label="Number 4">4</button>
+            <button onclick="appendToDisplay('5')" aria-label="Number 5">5</button>
+            <button onclick="appendToDisplay('6')" aria-label="Number 6">6</button>
+            <button onclick="appendToDisplay('-')" aria-label="Subtraction">−</button>
+            <button onclick="appendToDisplay('1')" aria-label="Number 1">1</button>
+            <button onclick="appendToDisplay('2')" aria-label="Number 2">2</button>
+            <button onclick="appendToDisplay('3')" aria-label="Number 3">3</button>
+            <button onclick="appendToDisplay('+')" aria-label="Addition">+</button>
+            <button onclick="appendToDisplay('0')" style="grid-column: span 2;" aria-label="Number 0">0</button>
+            <button onclick="appendToDisplay('.')" aria-label="Decimal point">.</button>
+            <button class="equals" onclick="calculate()" aria-label="Calculate result">=</button>
+            <button onclick="toggleHistory()" style="grid-column: span 4; margin-top: 10px; background: #444; font-size: 16px;">
+                <span id="historyBtnText"> History</span>
+            </button>
+            <button id="clearHistoryBtn" onclick="clearHistory()" style="grid-column: span 4; margin-top: 5px; background: #e74c3c; display: none;">
+                ❌ Clear History
+            </button>
+            <div id="historyList"></div>
+        </div>
+    </div>
+    <script>
+        // Load history from localStorage
+        let operationElement = document.getElementById('operation');
+        let resultElement = document.getElementById('result');
+        let equation = "";
+        let calculationHistory = JSON.parse(localStorage.getItem('calcHistory')) || [];
+
+        function appendToDisplay(value) {
+            if (resultElement.innerText === "0" && value !== ".") {
+                equation = "";
+            }
+            equation += value;
+            resultElement.innerText = equation;
+            operationElement.innerText = equation; // Update operation display
+        }
+
+        function clearDisplay() {
+            equation = "";
+            resultElement.innerText = "0";
+            operationElement.innerText = "";
+        }
+
+        function deleteLast() {
+            equation = equation.slice(0, -1);
+            resultElement.innerText = equation || "0";
+            operationElement.innerText = equation; // Update operation display
+        }
+
+        function calculate() {
+            try {
+                const operation = equation;
+                const result = eval(operation.replace(/×/g, '*').replace(/÷/g, '/'));
+                
+                // Store in history
+                calculationHistory.unshift({
+                    operation: operation,
+                    result: result,
+                    timestamp: new Date().toLocaleString()
+                });
+                
+                // Keep only last 5 calculations
+                calculationHistory = calculationHistory.slice(0, 5);
+                
+                // Update display - shows just the most recent operation
+                operationElement.innerText = `${operation} =`;
+                resultElement.innerText = result;
+                
+                // Store in localStorage
+                localStorage.setItem('calcHistory', JSON.stringify(calculationHistory));
+                
+                equation = result.toString();
+            } catch (error) {
+                operationElement.innerText = "";
+                resultElement.innerText = "Error";
+                equation = "";
+                calculationHistory = [];
+            }
+        }
+
+        // Keyboard support
+        document.addEventListener('keydown', (event) => {
+            const key = event.key;
+            if (!isNaN(key) || ['+', '-', '*', '/', '%', '.'].includes(key)) {
+                appendToDisplay(key);
+                event.preventDefault();
+            } else if (key === 'Enter' || key === '=') {
+                calculate();
+                event.preventDefault();
+            } else if (key === 'Backspace') {
+                deleteLast();
+                event.preventDefault();
+            } else if (key === 'Escape') {
+                clearDisplay();
+                event.preventDefault();
+            }
+        });
+
+        function toggleHistory() {
+            const historyList = document.getElementById('historyList');
+            const clearBtn = document.getElementById('clearHistoryBtn');
+            const isVisible = historyList.style.display === 'block';
+            
+            if (isVisible) {
+                historyList.style.display = 'none';
+                historyList.classList.remove('empty');
+            } else {
+                historyList.style.display = 'block';
+                if (calculationHistory.length === 0) {
+                    historyList.classList.add('empty');
+                }
+            }
+            clearBtn.style.display = isVisible ? 'none' : 'block';
+            
+            if (!isVisible) {
+                if (calculationHistory.length === 0) {
+                    historyList.style.display = 'none';
+                    clearBtn.style.display = 'none';
+                    return;
+                }
+                
+                historyList.innerHTML = calculationHistory.map(item => 
+                    `<div class="history-item" onclick="useHistory('${item.operation}')">
+                        <strong>${item.operation}</strong> = ${item.result}<br>
+                        <small style="color:#999">${item.timestamp}</small>
+                    </div>`
+                ).join('');
+            }
+            
+            // Update count in button
+            document.getElementById('historyBtnText').textContent = `📜 History (${calculationHistory.length})`;
+        }
+    function clearHistory() {
+        localStorage.removeItem('calcHistory');
+        calculationHistory = [];
+        const historyList = document.getElementById('historyList');
+        historyList.classList.add('empty');
+        document.getElementById('historyBtnText').textContent = "📜 History (0)";
+        document.getElementById('clearHistoryBtn').style.display = 'none';
+        
+        // Clear and hide immediately
+        historyList.innerHTML = "";
+        historyList.style.display = 'none';
+    }
+
+    function useHistory(operation) {
+            equation = operation;
+            resultElement.textContent = equation;
+            operationElement.textContent = equation;
+            document.getElementById('historyList').style.display = 'none';
+        }
+    </script>
+</body>
+</html>
